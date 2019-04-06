@@ -1,14 +1,14 @@
-'use strict';
-require('./lib/utils/safe-promise');
+import './lib/utils/safe-promise';
 
-const yargs = require('yargs');
-const yargonaut = require('yargonaut');
-const chalk = require('chalk');
-const {version, author} = require('../package');
-const {handleError, handleSignal} = require('./lib/utils/error-handler');
-const {getCmds, getFiglet} = require('./lib/utils');
+import yargs, { Argv } from 'yargs';
+import yargonaut from 'yargonaut';
+import chalk from 'chalk';
+import { version, author } from '../package.json';
+import { handleError, handleSignal } from './lib/utils/error-handler';
+import { getCmds,  getFiglet } from './lib/utils';
 
-const authorName = typeof author === 'string' ? author : author.name;
+
+const authorName = typeof author === 'string' ? author : (author as any).name as string;
 
 process.addListener('SIGHUP', handleSignal);
 process.addListener('SIGQUIT', handleSignal);
@@ -16,10 +16,11 @@ process.addListener('SIGINT', handleSignal);
 process.addListener('SIGTERM', handleSignal);
 process.addListener('uncaughtException', handleError);
 
-(async () => {
+(async (): Promise<void> => {
 	const cmdName = getCmds()[0],
 		logo = await getFiglet(cmdName);
-	yargs.logo = logo;
+	(yargs as any).logo = logo;
+
 	yargonaut
 		.helpStyle('blue.underline')
 		.style('red.bold', 'required')
@@ -39,7 +40,9 @@ process.addListener('uncaughtException', handleError);
 		.epilog(`By ${authorName}`)
 		.help()
 		// 尽量不要用async函数, 不过这里用用也没事
-		.fail(async (msg, err, yargs) => {
+		// MMP第三方的types这里类型少一个参数
+		// tslint:disable-next-line
+		.fail((async (msg: string, err: Error, yargs: Argv): Promise<void> => {
 			// 这个坑爹东西会捕获掉所有同步异常, 子命令的fail还会向上一级命令的fail冒泡
 			if (err) {
 				await handleError(err);
@@ -47,7 +50,7 @@ process.addListener('uncaughtException', handleError);
 				// 处理子命令不带参数
 				yargs.showHelp();
 			}
-		});
+		}) as any);
 
 	const argv = yargs.argv;
 

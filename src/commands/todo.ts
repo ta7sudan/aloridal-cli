@@ -1,10 +1,10 @@
-'use strict';
-const {getCmds} = require('../lib/utils');
+import { getCmds } from '../lib/utils';
+import { Argv, Arguments } from 'yargs';
 
 const create = {
 	command: 'todo <required> [options]',
 	desc: 'TODO',
-	builder(yargs) {
+	builder(yargs: Argv): Argv {
 		return yargs
 			.option('t', {
 				alias: 'TODO',
@@ -17,7 +17,7 @@ const create = {
 				'TODO'
 			);
 	},
-	handler(argv) {
+	handler(argv: Arguments): void {
 		console.log('TODO', argv);
 	}
 };
