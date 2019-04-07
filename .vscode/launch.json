@@ -7,10 +7,12 @@
 		{
 			"type": "node",
 			"request": "launch",
-			"name": "Debug TODO",
+			"name": "Debug Entry",
 			"program": "${workspaceFolder}/dist/bin/index.js",
 			"args": [
-				"TODO"
+				"start",
+				"-E",
+				"production"
 			]
 		},
 		{

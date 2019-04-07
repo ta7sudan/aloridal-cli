@@ -28,7 +28,7 @@ process.addListener('uncaughtException', error_handler_1.handleError);
         .completion('completion', 'get completion script')
         .alias('h', 'help')
         .alias('v', 'version')
-        .example(`${cmdName} todo`, 'TODO')
+        .example(`${cmdName} start my-app`, 'start an application')
         .usage(`${chalk_1.default.yellowBright(logo)}\n\n${chalk_1.default.blue.underline('Usage:')}\n  `
         + `${cmdName} <command> [options]`)
         .version(package_json_1.version)

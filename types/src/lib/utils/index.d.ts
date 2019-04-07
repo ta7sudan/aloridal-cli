@@ -1,6 +1,5 @@
 import cleaner from './cleaner';
 import * as logger from './logger';
-declare const TODO_DIR: string;
 export declare type Callable = (...args: any[]) => any;
 export declare type AsyncCallable = (...args: any[]) => Promise<any>;
 export declare const isAsyncFunction: (fn: any) => fn is AsyncCallable;
@@ -9,5 +8,6 @@ export declare const sleep: (time: number) => Promise<any>;
 export declare const getAbsolutePath: (rel: string) => string;
 export declare const getCmds: () => string[];
 export declare const getFiglet: (cmd: string) => Promise<string>;
-export { logger, TODO_DIR, cleaner };
+export declare function findProjectRoot(currentPath?: string): string | undefined;
+export { logger, cleaner };
 //# sourceMappingURL=index.d.ts.map

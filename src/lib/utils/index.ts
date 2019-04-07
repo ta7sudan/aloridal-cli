@@ -1,12 +1,11 @@
 import figlet from 'figlet';
-import path from 'path';
-import os from 'os';
+import { resolve, dirname } from 'path';
 import pkg from '../../../package.json';
 import cleaner from './cleaner';
 import * as logger from './logger';
+import { existsSync } from 'fs';
 
 
-const TODO_DIR = path.resolve(os.homedir(), '.todo');
 
 type PromiseData = [undefined, any];
 
@@ -22,7 +21,7 @@ export const to = (p: Promise<any>): Promise<PromiseData | PromiseError> => p.th
 
 export const sleep = (time: number): Promise<any> => new Promise<any>((rs: any): any => setTimeout(rs, time));
 
-export const getAbsolutePath = (rel: string): string => path.resolve(process.cwd(), rel);
+export const getAbsolutePath = (rel: string): string => resolve(process.cwd(), rel);
 
 export const getCmds = (): string[] => Object.keys(pkg.bin);
 
@@ -36,7 +35,23 @@ export const getFiglet = (cmd: string): Promise<string> => new Promise<string>((
 			rs(data);
 		}
 	});
-
 });
 
-export { logger, TODO_DIR, cleaner };
+let PROJECT_ROOT: string | undefined;
+
+export function findProjectRoot(currentPath: string = process.cwd()): string | undefined {
+	if (PROJECT_ROOT) {
+		return PROJECT_ROOT;
+	}
+	const testPath = resolve(currentPath, 'package.json');
+	if (existsSync(testPath)) {
+		PROJECT_ROOT = currentPath;
+		return PROJECT_ROOT
+	} else if (currentPath === dirname(currentPath)) {
+		return;
+	} else {
+		return findProjectRoot(dirname(currentPath));
+	}
+}
+
+export { logger, cleaner };

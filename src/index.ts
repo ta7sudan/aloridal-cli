@@ -33,7 +33,7 @@ process.addListener('uncaughtException', handleError);
 		.completion('completion', 'get completion script')
 		.alias('h', 'help')
 		.alias('v', 'version')
-		.example(`${cmdName} todo`, 'TODO')
+		.example(`${cmdName} start my-app`, 'start an application')
 		.usage(`${chalk.yellowBright(logo)}\n\n${chalk.blue.underline('Usage:')}\n  `
 		+ `${cmdName} <command> [options]`)
 		.version(version)

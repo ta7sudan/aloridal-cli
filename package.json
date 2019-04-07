@@ -12,6 +12,7 @@
   },
   "scripts": {
     "build": "tsc",
+    "dev": "tsc --watch",
     "prebuild": "rimraf dist types",
     "lint": "tslint -p tsconfig.json && eslint test",
     "format": "prettier --config .prettierrc.js --write {src,bin,test}/**/*.{js,ts}",
