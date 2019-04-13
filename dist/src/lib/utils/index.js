@@ -44,4 +44,14 @@ function findProjectRoot(currentPath = process.cwd()) {
     }
 }
 exports.findProjectRoot = findProjectRoot;
+// 其实util包里有一个isPrimitivef方法, 不过已经不推荐用了, 就自己写吧
+function isPrimitives(v) {
+    return typeof v === 'string'
+        || typeof v === 'number'
+        || typeof v === 'undefined'
+        || typeof v === 'symbol'
+        || typeof v === 'boolean'
+        || typeof v === null;
+}
+exports.isPrimitives = isPrimitives;
 //# sourceMappingURL=index.js.map

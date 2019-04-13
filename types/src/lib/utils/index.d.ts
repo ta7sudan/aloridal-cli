@@ -9,5 +9,6 @@ export declare const getAbsolutePath: (rel: string) => string;
 export declare const getCmds: () => string[];
 export declare const getFiglet: (cmd: string) => Promise<string>;
 export declare function findProjectRoot(currentPath?: string): string | undefined;
+export declare function isPrimitives(v: any): boolean;
 export { logger, cleaner };
 //# sourceMappingURL=index.d.ts.map

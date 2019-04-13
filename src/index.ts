@@ -24,7 +24,7 @@ process.addListener('uncaughtException', handleError);
 	yargonaut
 		.helpStyle('blue.underline')
 		.style('red.bold', 'required')
-		.style('magenta', ['boolean', 'string']);
+		.style('magenta', ['boolean', 'string', 'number']);
 
 	yargs
 		.scriptName(cmdName)

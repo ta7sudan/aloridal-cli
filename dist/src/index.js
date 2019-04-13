@@ -20,7 +20,7 @@ process.addListener('uncaughtException', error_handler_1.handleError);
     yargonaut_1.default
         .helpStyle('blue.underline')
         .style('red.bold', 'required')
-        .style('magenta', ['boolean', 'string']);
+        .style('magenta', ['boolean', 'string', 'number']);
     yargs_1.default
         .scriptName(cmdName)
         .commandDir('./commands')
