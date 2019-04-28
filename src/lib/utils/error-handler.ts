@@ -4,10 +4,10 @@ import { logger, cleaner } from './index';
 
 
 // 尽量不要用async函数来做最终的异常处理
-async function handleSignal(): Promise<void> {
+function handleSignal(signal: string): void {
 	const spiner = ora('do clean up...\n').start();
 	try {
-		await cleaner.cleanup();
+		cleaner.cleanup(signal);
 		spiner.succeed('Exiting without error.');
 	} catch (e) {
 		logger.error(`Clean up failed. Error message: ${e.message}`);
@@ -15,7 +15,7 @@ async function handleSignal(): Promise<void> {
 		process.exit(1);
 		return;
 	}
-	process.exit();
+	process.exit(0);
 }
 
 interface CustomError {
@@ -28,7 +28,7 @@ function isCustomError(e: any): e is CustomError {
 }
 
 // 尽量不要用async函数来做最终的异常处理
-async function handleError(e: Error | CustomError): Promise<any> {
+function handleError(e: Error | CustomError): void {
 	if (isCustomError(e)) {
 		logger.error(e.msg);
 	} else {
@@ -39,7 +39,7 @@ async function handleError(e: Error | CustomError): Promise<any> {
 	
 	const spiner = ora('do clean up...\n').start();
 	try {
-		await cleaner.cleanup();
+		cleaner.cleanup();
 		spiner.succeed('clean up done.');
 	} catch (err) {
 		logger.error(`Clean up failed. Error message: ${err.message}`);

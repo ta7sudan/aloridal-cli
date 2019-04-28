@@ -30,7 +30,7 @@ const create = {
 			})
 			.option('T', {
 				alias: 'timeout',
-				describe: 'the maximun timeout when app starts',
+				describe: 'the maximun timeout when app starts, ms',
 				number: true,
 				default: 300 * 1000
 			})

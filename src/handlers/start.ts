@@ -1,9 +1,14 @@
 import { Arguments } from 'yargs';
-import { findProjectRoot, logger, isPrimitives } from '../lib/utils';
-import { resolve } from 'path';
-import { existsSync } from 'fs';
-import { EOL } from 'os';
+import { findProjectRoot, logger, cleaner, sleep } from '../lib/utils';
+import { resolve, basename } from 'path';
+import loadConfig from '../lib/config-loader';
+import execa, { StdIOOption, ExecaChildProcess } from 'execa';
 
+// type Signals =
+// 	"SIGABRT" | "SIGALRM" | "SIGBUS" | "SIGCHLD" | "SIGCONT" | "SIGFPE" | "SIGHUP" | "SIGILL" | "SIGINT" | "SIGIO" |
+// 	"SIGIOT" | "SIGKILL" | "SIGPIPE" | "SIGPOLL" | "SIGPROF" | "SIGPWR" | "SIGQUIT" | "SIGSEGV" | "SIGSTKFLT" |
+// 	"SIGSTOP" | "SIGSYS" | "SIGTERM" | "SIGTRAP" | "SIGTSTP" | "SIGTTIN" | "SIGTTOU" | "SIGUNUSED" | "SIGURG" |
+// 	"SIGUSR1" | "SIGUSR2" | "SIGVTALRM" | "SIGWINCH" | "SIGXCPU" | "SIGXFSZ" | "SIGBREAK" | "SIGLOST" | "SIGINFO";
 interface CommandLineOptions {
 	workers: number;
 	node: string;
@@ -12,16 +17,99 @@ interface CommandLineOptions {
 	baseDir: string;
 }
 
-function startMaster(cmdOptions: CommandLineOptions, clusterOptions: object): void {
-	// TODO
-	console.log(cmdOptions);
-	console.log(clusterOptions);
+
+async function startMaster(cmdOptions: CommandLineOptions, clusterOptions: object): Promise<any> {
+	const { workers, node, timeout, daemon: isDaemon, baseDir } = cmdOptions;
+	const appName = (clusterOptions as any).name || require(resolve(baseDir, 'package.json')).name || basename(baseDir);
+	const bin = resolve(__dirname, '../lib/start-cluster.js');
+	let isReady = false;
+
+	async function checkStatus(child: ExecaChildProcess): Promise<any> {
+		let count = 0;
+		const expectedCount = timeout / 1000;
+		while (!isReady) {
+			if (count >= expectedCount) {
+				child.kill('SIGTERM');
+				logger.error(`Start failed, ${expectedCount}s timeout`);
+				await sleep(1000);
+				process.exit(1);
+			}
+			++count;
+			await sleep(1000);
+		}
+	}
+
+	!(clusterOptions as any).name && ((clusterOptions as any).name = appName);
+	!(clusterOptions as any).workers && ((clusterOptions as any).workers = workers);
+
+	const $clusterOptions = JSON.stringify(clusterOptions);
+
+	logger.info(`Using node.js ${node}`);
+	logger.info(`Starting application ${appName}...`);
+
+	if (isDaemon) {
+		const processObtions = {
+			// 这个没什么用, 只是为了方便
+			execArgv: process.execArgv,
+			cwd: baseDir,
+			env: process.env,
+			stdio: ['ignore', 'pipe', 'pipe', 'ipc'] as ReadonlyArray<StdIOOption>,
+			detached: true,
+			cleanup: false,
+			timeout
+		};
+
+		const child = execa(node, [...process.execArgv, bin, $clusterOptions], processObtions);
+		child.on('message', (msg: string): void => {
+			if (msg === 'start-ready') {
+				isReady = true;
+				child.unref();
+				child.disconnect();
+				logger.success(`${appName} started.`);
+				process.exit(0);
+			}
+		});
+
+		cleaner.child = child;
+
+		await checkStatus(child);
+	} else {
+		const processObtions = {
+			execArgv: process.execArgv,
+			cwd: baseDir,
+			env: process.env,
+			stdio: ['inherit', 'inherit', 'inherit', 'ipc'] as ReadonlyArray<StdIOOption>,
+			detached: false,
+			// 好像没什么必要, 或者我自己不去手动kill它
+			cleanup: true,
+			timeout
+		};
+
+		const child = execa(node, [...process.execArgv, bin, $clusterOptions], processObtions);
+		child.once('exit', (code: number): void => {
+			if (code !== 0) {
+				logger.error(`execute '${[node, ...process.execArgv, bin, $clusterOptions].join(' ')}' failed, exit code ${code}`);
+			} else {
+				logger.success('child process exit success.');
+			}
+		});
+
+		// 前面已经注册过这些事件了, 
+		// 这里只需要收集下子进程就好
+		cleaner.child = child;
+		// ['SIGHUP', 'SIGQUIT', 'SIGINT', 'SIGTERM'].forEach(signal => {
+		// 	process.addListener(signal as Signals, () => {
+		// 		logger.info(`kill child with ${signal}...`);
+		// 		child.kill(signal);
+		// 		process.exit(0);
+		// 	});
+		// });
+	}
 }
 
 export default function start(argv: Arguments): void {
 	const { config, workers, node, timeout, env, daemon } = argv as { [k: string]: any },
 		baseDir = findProjectRoot();
-	let configFileName = 'alo.{env}.js';
 
 	// 默认dev, 其他的根据用户输入决定, ALO_ENV决定了配置文件选择
 	process.env.ALO_ENV = env;
@@ -35,35 +123,7 @@ export default function start(argv: Arguments): void {
 		return;
 	}
 
-	if (config) {
-		configFileName = resolve(process.cwd(), config);
-	} else {
-		configFileName = resolve(baseDir, configFileName.replace(/{env}/g, process.env.ALO_ENV!));
-	}
-
-	if (!existsSync(configFileName)) {
-		logger.error(`${configFileName} not found.`);
-		process.exit(1);
-	}
-
-	const configFileExposed = require(configFileName);
-	let configuration: object | null = null;
-
-	if (typeof configFileExposed === 'function') {
-		try {
-			configuration = configFileExposed();
-		} catch (e) {
-			logger.error(`Error in ${configFileName} when execute the exposed function. The reason is:${EOL}${e.message}`);
-			process.exit(1);
-		}
-	} else if (!isPrimitives(configFileExposed)) {
-		configuration = configFileExposed;
-	} else {
-		logger.error(`Aloridal expected an object or a function in ${configFileName} but ${configFileExposed} was found.`);
-		process.exit(1);
-	}
-
-	logger.success(`Load ${configFileName} success.`);
+	const configuration = loadConfig(config, baseDir);
 
 	const cmdOptions: CommandLineOptions = {
 		workers,
@@ -72,6 +132,6 @@ export default function start(argv: Arguments): void {
 		daemon,
 		baseDir: baseDir!
 	};
+
 	startMaster(cmdOptions, configuration!);
-	
 };

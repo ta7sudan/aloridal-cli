@@ -1,5 +1,9 @@
+import { logger } from '.';
+
 export default {
-	async cleanup(): Promise<void> {
-		// TODO
+	child: null as any,
+	cleanup(msg?: any): void {
+		logger.info(`kill child with ${msg}...`);
+		this.child.kill(msg);
 	}
 };
